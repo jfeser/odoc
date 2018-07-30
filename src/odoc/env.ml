@@ -122,14 +122,14 @@ let fetch_page ap root =
   | path -> Page.load path
   | exception Not_found ->
     Printf.eprintf "No unit for root: %s\n%!" (Model.Root.to_string root);
-    exit 2
+    raise Not_found
 
 let fetch_unit ap root =
   match Accessible_paths.file_of_root ap root with
   | path -> Compilation_unit.load path
   | exception Not_found ->
     Printf.eprintf "No unit for root: %s\n%!" (Model.Root.to_string root);
-    exit 2
+    raise Not_found
 
 type builder = [ `Unit of Compilation_unit.t | `Page of Page.t ] -> t
 
