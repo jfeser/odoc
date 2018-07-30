@@ -2,5 +2,6 @@
 
 (library
  ((name loader)
+  (public_name odoc.loader)
   (libraries (compiler-libs.common model parser_))
   (preprocess (action (run ${bin:cppo} -V OCAML:${ocaml_version} ${<})))))
