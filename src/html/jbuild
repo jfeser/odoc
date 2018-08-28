@@ -1,7 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name html)
-  (public_name odoc.html)
-  (preprocess (pps (bisect_ppx -conditional)))
-  (libraries (model tyxml))))
