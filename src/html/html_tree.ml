@@ -19,7 +19,13 @@
 module Html = Tyxml.Html
 module Paths = Model.Paths
 
+type syntax = OCaml | Reason
+
 type kind = [ `Arg | `Mod | `Mty | `Class | `Cty | `Page ]
+
+let string_of_syntax = function
+  | OCaml -> "ml"
+  | Reason -> "re"
 
 type uri =
   | Absolute of string

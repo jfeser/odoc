@@ -19,7 +19,11 @@
 module Html = Tyxml.Html
 module Paths = Model.Paths
 
+(** Supported languages for printing code parts. *)
 
+type syntax = OCaml | Reason
+
+val string_of_syntax: syntax -> string
 
 type t = private {
   name : string;

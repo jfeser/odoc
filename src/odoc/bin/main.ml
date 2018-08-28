@@ -6,6 +6,19 @@
 open Odoc
 open Cmdliner
 
+let convert_syntax : Html.Html_tree.syntax Arg.converter =
+  let open Html.Html_tree in
+  let syntax_parser str =
+    match str with
+  | "ml" | "ocaml" -> `Ok OCaml
+  | "re" | "reason" -> `Ok Reason
+  | s -> `Error (Printf.sprintf "Unknown syntax '%s'" s)
+  in
+  let syntax_printer fmt syntax =
+    Format.pp_print_string fmt (Html__.Html_tree.string_of_syntax syntax)
+  in
+  (syntax_parser, syntax_printer)
+
 let convert_directory : Fs.Directory.t Arg.converter =
   let (dir_parser, dir_printer) = Arg.dir in
   let odoc_dir_parser str =
@@ -164,15 +177,15 @@ module Html : sig
 end = struct
 
   let html semantic_uris closed_details _hidden directories output_dir index_for
-        theme_uri input_file =
+        syntax theme_uri input_file =
     Html.Html_tree.Relative_link.semantic_uris := semantic_uris;
     Html.Html_tree.open_details := not closed_details;
     let env = Env.create ~important_digests:false ~directories in
     let file = Fs.File.of_string input_file in
     match index_for with
-    | None -> Html_page.from_odoc ~env ~theme_uri ~output:output_dir file
+    | None -> Html_page.from_odoc ~env ~syntax ~theme_uri ~output:output_dir file
     | Some pkg_name ->
-      Html_page.from_mld ~env ~output:output_dir ~package:pkg_name file
+      Html_page.from_mld ~env ~syntax ~output:output_dir ~package:pkg_name file
 
   let cmd =
     let input =
@@ -205,8 +218,13 @@ end = struct
       let default = Html.Html_tree.Relative "./" in
       Arg.(value & opt convert_uri default & info ~docv:"URI" ~doc ["theme-uri"])
     in
+    let syntax =
+      let doc = "Available options: ml | re"
+      in
+      Arg.(value & opt (pconv convert_syntax) (Html.Html_tree.OCaml) @@ info ~docv:"SYNTAX" ~doc ["syntax"])
+    in
     Term.(const html $ semantic_uris $ closed_details $ hidden $
-      odoc_file_directories $ dst $ index_for $ theme_uri $ input)
+      odoc_file_directories $ dst $ index_for $ syntax $ theme_uri $ input)
 
   let info =
     Term.info ~doc:"Generates an html file from an odoc one" "html"

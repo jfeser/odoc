@@ -16,7 +16,17 @@
 
 open StdLabels
 
-let from_odoc ~env ?theme_uri ~output:root_dir input =
+let to_html_tree_page ?theme_uri ~syntax v =
+  match syntax with
+  | Html.Html_tree.Reason -> Html.To_html_tree.RE.page ?theme_uri v
+  | Html.Html_tree.OCaml -> Html.To_html_tree.ML.page ?theme_uri v
+
+let to_html_tree_compilation_unit ?theme_uri ~syntax v =
+  match syntax with
+  | Html.Html_tree.Reason -> Html.To_html_tree.RE.compilation_unit ?theme_uri v
+  | Html.Html_tree.OCaml -> Html.To_html_tree.ML.compilation_unit ?theme_uri v
+
+let from_odoc ~env ?(syntax=Html.Html_tree.OCaml) ?theme_uri ~output:root_dir input =
   let root = Root.read input in
   match root.file with
   | Page page_name ->
@@ -26,7 +36,7 @@ let from_odoc ~env ?theme_uri ~output:root_dir input =
       Xref.resolve_page (Env.resolver resolve_env) page
     in
     let pkg_name = root.package in
-    let pages = Html.To_html_tree.page ?theme_uri odoctree in
+    let pages = to_html_tree_page ?theme_uri ~syntax odoctree in
     let pkg_dir = Fs.Directory.reach_from ~dir:root_dir pkg_name in
     Fs.Directory.mkdir_p pkg_dir;
     Html.Html_tree.traverse pages ~f:(fun ~parents _pkg_name content ->
@@ -36,13 +46,12 @@ let from_odoc ~env ?theme_uri ~output:root_dir input =
         open_out (Fs.File.to_string f)
       in
       let fmt = Format.formatter_of_out_channel oc in
-      Format.fprintf fmt "%a" (Tyxml.Html.pp ()) content;
+      Format.fprintf fmt "%a@?" (Tyxml.Html.pp ()) content;
       close_out oc
     )
-  | Compilation_unit {hidden; _} ->
-    if hidden then
-      Printf.eprintf
-        "odoc should not generate html but will for the time being...\n%!";
+  | Compilation_unit {hidden = _; _} ->
+    (* If hidden, we should not generate HTML. See
+         https://github.com/ocaml/odoc/issues/99. *)
     let unit = Compilation_unit.load input in
     let unit = Xref.Lookup.lookup unit in
     let odoctree =
@@ -57,7 +66,7 @@ let from_odoc ~env ?theme_uri ~output:root_dir input =
     let pkg_dir =
       Fs.Directory.reach_from ~dir:root_dir root.package
     in
-    let pages = Html.To_html_tree.compilation_unit ?theme_uri odoctree in
+    let pages = to_html_tree_compilation_unit ?theme_uri ~syntax odoctree in
     Html.Html_tree.traverse pages ~f:(fun ~parents name content ->
       let directory =
         let dir =
@@ -72,13 +81,13 @@ let from_odoc ~env ?theme_uri ~output:root_dir input =
         open_out (Fs.File.to_string file)
       in
       let fmt = Format.formatter_of_out_channel oc in
-      Format.fprintf fmt "%a" (Tyxml.Html.pp ()) content;
+      Format.fprintf fmt "%a@?" (Tyxml.Html.pp ()) content;
       close_out oc
     )
 
 (* Used only for [--index-for] which is deprecated and available only for
    backward compatibility. It should be removed whenever. *)
-let from_mld ~env ~package ~output:root_dir input =
+let from_mld ~env ?(syntax=Html.Html_tree.OCaml) ~package ~output:root_dir input =
   let root_name =
     Filename.chop_extension (Fs.File.(to_string @@ basename input))
   in
@@ -115,7 +124,7 @@ let from_mld ~env ~package ~output:root_dir input =
     let page = Xref.Lookup.lookup_page page in
     let env = Env.build env (`Page page) in
     let resolved = Xref.resolve_page (Env.resolver env) page in
-    let pages = Html.To_html_tree.page resolved in
+    let pages = to_html_tree_page ~syntax resolved in
     let pkg_dir = Fs.Directory.reach_from ~dir:root_dir root.package in
     Fs.Directory.mkdir_p pkg_dir;
     Html.Html_tree.traverse pages ~f:(fun ~parents _pkg_name content ->
@@ -125,6 +134,6 @@ let from_mld ~env ~package ~output:root_dir input =
         open_out (Fs.File.to_string f)
       in
       let fmt = Format.formatter_of_out_channel oc in
-      Format.fprintf fmt "%a" (Tyxml.Html.pp ()) content;
+      Format.fprintf fmt "%a@?" (Tyxml.Html.pp ()) content;
       close_out oc
     )
