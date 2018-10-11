@@ -1,3 +1,5 @@
+open Result
+
 type sexp = Sexplib.Sexp.t =
   | Atom of string
   | List of sexp list
@@ -16,7 +18,7 @@ struct
       List ((Atom "compilation_unit")::(Atom name)::hidden)
 
   let root : Root.t -> sexp = fun {package; file; digest} ->
-    List [Atom package; odoc_file file; Atom digest]
+    List [Atom package; odoc_file file; Atom (Digest.to_hex digest)]
 end
 
 

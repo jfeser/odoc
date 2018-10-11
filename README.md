@@ -1,6 +1,6 @@
 # odoc
 
-**odoc** is a documentation generator for OCaml. It reads *doc comments*,
+**odoc** is a documentation generator for OCaml. It reads *doc comments* ,
 delimited with `(** ... *)`, and outputs HTML. See example output at
 [docs.mirage.io][mirage-docs].
 
@@ -31,7 +31,7 @@ a work in progress :)
 
 <br/>
 
-## Installing and usage
+## Using `odoc` with OCaml
 
 ```
 opam install odoc
@@ -46,6 +46,79 @@ dune build @doc
 
 The generated docs can then be found locally at
 `./_build/default/_doc/_html/index.html`.
+
+<br/>
+
+## Using `odoc` with BuckleScript/Reason
+
+> BuckleScript support currently requires the latest development version of odoc.
+
+While the BuckleScript/Reason toolchain relies on `npm`, `odoc` at the moment
+needs to be used from a working OCaml toolchain.
+
+This means we follow the same installation than above, but using the
+`4.02.3+buckle-master` version of the OCaml compiler.
+
+```sh
+λ opam switch 4.02.3+buckle-master
+λ eval `opam config env`
+λ opam pin add odoc.dev git+https://github.com/ocaml/odoc
+
+```
+
+Now with that working, we can point `odoc` to the path where BuckleScript saves
+the compiled code that we can use to generate our documentation. This path is
+`$root/lib/bs/src`.
+
+In there you'll find your `.cmt` and `.cmti` files.
+
+You can now compile each one of them from `.cmt[i]` to `.odoc` and from `.odoc`
+to `.html`.
+
+The following script can help you get started:
+
+```bash
+#!/bin/bash
+
+readonly PKG=$1
+readonly DOCS=$2
+
+readonly ODOC=$(which odoc)
+readonly LIB=./lib/bs/src
+
+readonly CMT_FILES=$(find ${LIB} -name "*.cmti")
+readonly ODOC_FILES=$(echo ${CMT_FILES} | sed "s/cmti/odoc/g")
+
+echo "<< Compiling docs..."
+for file in ${CMT_FILES}; do
+  ${ODOC} compile \
+    -I ${LIB} \
+    --pkg=${PKG} \
+    ${file}
+done
+echo ">> Done!"
+
+echo "<< Generating HTML..."
+for file in ${ODOC_FILES}; do
+  ${ODOC} html \
+    -I ${LIB} \
+    -o ${DOCS} \
+    --syntax=re \
+    --semantic-uris \
+    ${file}
+done
+echo ">> Done!"
+```
+
+And you can call it like:
+
+```sh
+λ ./mk-docs.sh MyPackageName ${path_to_docs_folder}
+<< Compiling docs...
+>> Done!
+<< Generating HTML...
+>> Done!
+```
 
 <br/>
 
@@ -66,4 +139,4 @@ please don't hesitate to [reach out](#contact) for help.
 
 [discourse]: https://discuss.ocaml.org/c/eco
 [issues]: https://github.com/ocaml/odoc/issues/new
-[contributing.md]: https://github.com/ocaml/odoc/blob/master/CONTRIBUTING.md
+[contributing.md]: https://github.com/ocaml/odoc/blob/master/CONTRIBUTING.md#readme
